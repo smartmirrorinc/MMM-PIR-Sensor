@@ -11,6 +11,16 @@ const NodeHelper = require('node_helper');
 const Gpio = require('onoff').Gpio;
 const exec = require('child_process').exec;
 
+// Raspberry Pi 4 HDMI ON workaround
+const HdmiOn = function () {
+    exec("/bin/bash /home/pi/MagicMirror/modules/MMM-PIR-Sensor/hdmi-on.sh", null);
+};
+
+const HdmiOff = function() {
+    exec("/usr/bin/tvservice -o", null);
+    exec("/usr/bin/vcgencmd display_power 0", null);
+};
+
 module.exports = NodeHelper.create({
     start: function () {
         this.started = false;
@@ -30,7 +40,7 @@ module.exports = NodeHelper.create({
             // Check if hdmi output is already on
             exec("/usr/bin/vcgencmd display_power").stdout.on('data', function(data) {
                 if (data.indexOf("display_power=0") === 0)
-                    exec("/usr/bin/vcgencmd display_power 1", null);
+                    HdmiOn();
             });
         }
     },
@@ -47,7 +57,7 @@ module.exports = NodeHelper.create({
             this.relay.writeSync((this.config.relayState + 1) % 2);
         }
         else if (this.config.relayPin === false) {
-            exec("/usr/bin/vcgencmd display_power 0", null);
+            HdmiOff();
         }
     },
 
@@ -61,7 +71,7 @@ module.exports = NodeHelper.create({
             if (this.config.relayPin) {
                 this.relay = new Gpio(this.config.relayPin, 'out');
                 this.relay.writeSync(this.config.relayState);
-                exec("/usr/bin/vcgencmd display_power 1", null);
+                HdmiOn();
             }
 
             // Setup for alwaysOn switch
